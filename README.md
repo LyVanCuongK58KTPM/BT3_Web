@@ -1,11 +1,11 @@
-Bài tập 3   : môn Phát triển ứng dụng trên nền web
-Giảng viên  : Đỗ Duy Cốp
-Lớp học phần: 58KTPM
-Ngày giao   : 2025-10-24 13:50
-Hạn nộp     : 2025-11-05 00:00
+Bài tập 3   : môn Phát triển ứng dụng trên nền web<br>
+Giảng viên  : Đỗ Duy Cốp<br>
+Lớp học phần: 58KTPM<br>
+Ngày giao   : 2025-10-24 13:50<br>
+Hạn nộp     : 2025-11-05 00:00<br>
 --------------------------------------------------
-Yêu cầu     : LẬP TRÌNH ỨNG DỤNG WEB trên nền linux
-
+Yêu cầu     : LẬP TRÌNH ỨNG DỤNG WEB trên nền linux<br>
+<br>
 1. Enabale WSL và cài đặt Ubuntu:<br>
 - Mở powershell và cài đặt wsl:<br>
   <img width="662" height="492" alt="image" src="https://github.com/user-attachments/assets/c3d10dbb-5e4b-4044-8fe5-1d56c7856347" /><br>
