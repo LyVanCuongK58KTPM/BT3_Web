@@ -1,9 +1,9 @@
-Bài tập 3   : môn Phát triển ứng dụng trên nền web <br>
-Giảng viên  : Đỗ Duy Cốp <br>
-Lớp học phần: 58KTPM <br>
-Ngày giao   : 2025-10-24 13:50 <br>
-Hạn nộp     : 2025-11-05 00:00 <br>
---------------------------------------------------<br>
+# Bài tập 3   : môn Phát triển ứng dụng trên nền web <br>
+# Giảng viên  : Đỗ Duy Cốp <br>
+# Lớp học phần: 58KTPM <br>
+# Ngày giao   : 2025-10-24 13:50 <br>
+# Hạn nộp     : 2025-11-05 00:00 <br>
+# --------------------------------------------------<br>
 Yêu cầu     : LẬP TRÌNH ỨNG DỤNG WEB trên nền linux<br>
 <br>
 1. Enabale WSL và cài đặt Ubuntu:<br>
