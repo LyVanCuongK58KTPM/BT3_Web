@@ -46,4 +46,4 @@ Yêu cầu     : LẬP TRÌNH ỨNG DỤNG WEB trên nền linux<br>
 <img width="928" height="601" alt="image" src="https://github.com/user-attachments/assets/ed57d878-4ab5-410c-aafb-b18468f29019" /><br>
 <img width="1024" height="776" alt="image" src="https://github.com/user-attachments/assets/6cfa6a0e-5f92-4030-828d-7057c19ffdd6" /><br>
 5. Thiết kế web (Frontend + Backend):<br>
-   
+   - Truy cập node red và vài các thư viện: jwt, mysql
