@@ -46,4 +46,28 @@ Yêu cầu     : LẬP TRÌNH ỨNG DỤNG WEB trên nền linux<br>
 <img width="928" height="601" alt="image" src="https://github.com/user-attachments/assets/ed57d878-4ab5-410c-aafb-b18468f29019" /><br>
 <img width="1024" height="776" alt="image" src="https://github.com/user-attachments/assets/6cfa6a0e-5f92-4030-828d-7057c19ffdd6" /><br>
 5. Thiết kế web (Frontend + Backend):<br>
-   - Truy cập node red và vài các thư viện: jwt, mysql
+   - Truy cập node red và vài các thư viện:<br>
+     <img width="593" height="848" alt="image" src="https://github.com/user-attachments/assets/973f4c69-ef98-43ff-b049-b9d204062585" /><br>
+<br>
+  - Code file index.html để làm frontend và js sẽ gọi api tới các api của nodered:<br>
+   + Đăng kí:<br>
+     <img width="1307" height="763" alt="image" src="https://github.com/user-attachments/assets/80a5851e-ecb3-4b4c-ab88-95d180e6bb51" /><br>
+  + Đăng nhập bằng tài khoản admin ta có giao diện giành riêng cho admin:<br>
+    <img width="1916" height="964" alt="image" src="https://github.com/user-attachments/assets/c0b9e883-98e5-49a9-a9ca-1bd63a1e384a" /><br>
+  + Đăng nhập bằng tài khoản khách hàng:<br>
+<img width="1902" height="782" alt="image" src="https://github.com/user-attachments/assets/9a5843d8-ff98-4fb0-88d0-f3de7e21a692" /><br>
+
+  + Tính năng lọc sản phẩm theo hạng mục:<br>
+    <img width="1072" height="614" alt="image" src="https://github.com/user-attachments/assets/e9981a04-0ce7-4dd1-b8bc-16cbe03eb85f" /><br>
+
+  + Tính năng tìm kiếm sản phẩm:<br>
+    <img width="613" height="505" alt="image" src="https://github.com/user-attachments/assets/140bcb51-74c7-4def-bb90-41151105b099" /><br>
+
+  + Tính năng thêm sản phẩm vào giỏ hàng và đặt hàng(tính tổng tiền trong giỏ hàng)<br>
+    <img width="1371" height="652" alt="image" src="https://github.com/user-attachments/assets/90b2a64f-84ae-4ee0-9338-3070c3384484" /><br>
+    <img width="1290" height="973" alt="image" src="https://github.com/user-attachments/assets/d4a93e96-a8b8-40dc-bcee-c5db1c6cdf3e" /><br>
+  <img width="1495" height="964" alt="image" src="https://github.com/user-attachments/assets/96f0c39f-1be8-4fc4-b328-03a2ed15a383" /><br>
+
+
+====> Kết Luận: Em đã hoàn thành gần như đầy đủ bài tập( thiếu phần thống kê biểu đồ từ grafana) em sẽ tìm hiểu thêm về grafana và InluxDB để bổ sung vào dự án này.<br>
+EM CẢM ƠN THẦY ĐÃ THEO DÕI BÀI TẬP CỦA EM<br>
