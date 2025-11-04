@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web TMĐT - Lý Văn Cường</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* --- CÀI ĐẶT CHUNG (RESET VÀ FONT) --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        * { box-sizing: border-box; }
+        a {
+            color: #007bff;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        a:hover { color: #0056b3; }
+        h2 {
+            color: #007bff;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 1rem;
+        }
+        button:hover { background-color: #0056b3; }
+        input[type="text"], input[type="email"], input[type="password"], input[type="search"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        /* --- HEADER / NAVIGATION --- */
+        #navbar {
+            background-color: #343a40; /* Màu tối */
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #navbar a { color: white; font-weight: 500; }
+        #navbar span {
+            color: #ffc107; /* Màu vàng cho tên user */
+            margin-left: auto; /* Đẩy tên user sang phải */
+        }
+        #navbar .search-bar { margin-left: 20px; }
+        #navbar .search-bar input { border-radius: 4px; border: none; padding: 5px; }
+
+
+        /* --- MAIN LAYOUT --- */
+        main {
+            flex: 1; /* Cho phép nội dung chiếm hết không gian */
+            padding: 20px;
+            display: flex; /* Dùng flexbox cho Trang chủ */
+            gap: 20px;
+        }
+
+        /* --- SIDEBAR (Cho Trang chủ) --- */
+        .sidebar {
+            flex: 0 0 250px; /* Chiều rộng cố định */
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+        .sidebar h2 { margin-top: 0; }
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar ul a { display: block; padding: 8px; border-radius: 4px; }
+        .sidebar ul a:hover { background-color: #f1f1f1; }
+
+        /* --- CONTENT AREA --- */
+        .main-content { flex: 1; }
+        #products-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        .product-card {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            background-color: white;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .product-card h3 { margin-top: 0; color: #28a745; }
+
+        /* --- AUTH FORMS (LOGIN/REGISTER) --- */
+        .login-form, .register-form, .checkout-form, .admin-page {
+            width: 100%;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 25px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .login-form button, .register-form button {
+            background-color: #28a745;
+            width: 100%;
+        }
+        
+        /* --- GIỎ HÀNG & ADMIN --- */
+        .cart-item, .order-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cart-item input { width: 60px; }
+        
+    </style>
+</head>
+<body>
+    <header id="navbar">
+        </header>
+    
+    <main id="app-root">
+        </main>
+
+    <script>
+        // --- 1. THIẾT LẬP CƠ BẢN VÀ BIẾN STATE ---
+        const root = document.getElementById('app-root');
+        const nav = document.getElementById('navbar');
+        // URL GỐC: Nginx sẽ xử lý việc chuyển tiếp /api/
+        const API_BASE_URL = 'http://lyvancuong.com'; 
+
+        // --- SỬA LỖI JSON.parse("undefined") ---
+        function getStorageItem(key) {
+            const item = localStorage.getItem(key);
+            // Nếu item là null, "undefined", hoặc rỗng, trả về null
+            if (item === null || item === "undefined" || !item) {
+                return null;
+            }
+            try {
+                // Chỉ parse nếu item là một chuỗi JSON hợp lệ
+                return JSON.parse(item);
+            } catch (e) {
+                // Nếu parse lỗi (ví dụ: item là chuỗi "null"), trả về null
+                return null;
+            }
+        }
+        // --- HẾT PHẦN SỬA LỖI ---
+
+        // State (Trạng thái) của ứng dụng
+        let state = {
+            token: localStorage.getItem('user_token'), 
+            user: getStorageItem('user_info'),
+            cart: getStorageItem('cart') || []
+        };
+
+        // --- 2. HÀM CHUNG (HELPER) CHO API CALLS ---
+
+        // Hàm fetch có kèm token (dùng cho các API cần bảo mật)
+        async function fetchWithToken(endpoint, options = {}) {
+            if (!state.token) {
+                window.location.hash = '#/login';
+                throw new Error('Bạn chưa đăng nhập.');
+            }
+            const headers = {
+                ...options.headers,
+                'Authorization': 'Bearer ' + state.token,
+                'Content-Type': 'application/json'
+            };
+            const response = await fetch(`${API_BASE_URL}/api/${endpoint}`, { ...options, headers });
+            if (response.status === 401 || response.status === 403) {
+                handleLogout();
+                throw new Error('Phiên đăng nhập hết hạn hoặc không có quyền.');
+            }
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || `Lỗi không xác định: ${response.status}`);
+            }
+            return response.json(); 
+        }
+
+        function handleLogout() {
+            state.token = null;
+            state.user = null;
+            localStorage.clear();
+            alert('Đã đăng xuất');
+            window.location.hash = '#/login';
+        }
+
+        // Cập nhật thanh điều hướng
+        async function updateNavbar() {
+            let searchBar = `
+                <div class="search-bar">
+                    <input type="search" id="search-input" placeholder="Tìm kiếm...">
+                </div>
+            `;
+            if (state.token) {
+                nav.innerHTML = `
+                    <a href="#/"><i class="fas fa-home"></i> Trang chủ</a>
+                    <a href="#/cart"><i class="fas fa-shopping-cart"></i> Giỏ hàng (${state.cart.length})</a>
+                    ${state.user?.role === 'admin' ? '<a href="#/admin/orders">Admin</a>' : ''}
+                    ${state.user?.role === 'admin' ? '<a href="http://lyvancuong.com/grafana/" target="_blank">Grafana</a>' : ''}
+                    ${searchBar}
+                    <span>Chào, ${state.user?.username}</span>
+                    <a href="#/logout">Đăng xuất</a>
+                `;
+            } else {
+                nav.innerHTML = `
+                    <a href="#/login">Đăng nhập</a>
+                    <a href="#/register">Đăng ký</a>
+                    ${searchBar}
+                `;
+            }
+            document.getElementById('search-input')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    window.location.hash = `#/search?q=${e.target.value}`;
+                    e.preventDefault();
+                }
+            });
+        }
+
+
+        // --- 3. LOGIC XÁC THỰC (Đăng nhập/Đăng ký) ---
+
+        function renderLogin() {
+            root.innerHTML = `<div class="login-form">
+                <h2>Đăng nhập</h2>
+                <input type="email" id="email" placeholder="Email (admin@gmail.com)" required><br>
+                <input type="password" id="password" placeholder="Mật khẩu (123456)" required><br>
+                <button id="login-btn">Đăng nhập</button>
+            </div>`;
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+        }
+
+        function renderRegister() {
+            root.innerHTML = `<div class="register-form">
+                <h2>Đăng ký</h2>
+                <input type="text" id="username" placeholder="Tên hiển thị" required><br>
+                <input type="email" id="email" placeholder="Email" required><br>
+                <input type="password" id="password" placeholder="Mật khẩu" required><br>
+                <button id="register-btn">Đăng ký</button>
+            </div>`;
+            document.getElementById('register-btn').addEventListener('click', handleRegister);
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // --- SỬA LỖI: KIỂM TRA INPUT TRỐNG ---
+            if (!email || !password) {
+                alert("Vui lòng nhập đầy đủ email và mật khẩu!");
+                return; // Dừng, không gửi request
+            }
+            // --- HẾT PHẦN SỬA ---
+
+            try {
+                // Gọi API Node-RED: POST /api/login
+                const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Lỗi Server: Phản hồi không phải JSON. Kiểm tra Nginx/Node-RED.");
+                }
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    state.token = data.token;
+                    state.user = data.user;
+                    localStorage.setItem('user_token', data.token);
+                    localStorage.setItem('user_info', JSON.stringify(data.user));
+                    alert(data.message);
+                    window.location.hash = '#/';
+                } else {
+                    alert('Lỗi: ' + (data.message || 'Sai thông tin hoặc mật khẩu.'));
+                }
+            } catch(e) {
+                alert('Lỗi: ' + e.message);
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !email || !password) {
+                alert("Vui lòng điền đầy đủ thông tin!");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+                alert(data.message);
+                
+                if (response.ok) {
+                    window.location.hash = '#/login'; // Chuyển sang trang đăng nhập
+                }
+            } catch (e) {
+                alert("Lỗi khi đăng ký: " + e.message);
+            }
+        }
+
+        // --- 4. LOGIC SẢN PHẨM & GIỎ HÀNG ---
+
+        async function renderHome() {
+            root.innerHTML = `
+                <aside class="sidebar" id="sidebar-categories">
+                    <h2>Nhóm sản phẩm</h2>
+                    <ul id="category-list">Đang tải...</ul>
+                </aside>
+                <div class="main-content">
+                    <h2>Sản phẩm bán chạy</h2>
+                    <div id="products-list">Đang tải...</div>
+                </div>
+            `;
+            
+            const catList = document.getElementById('category-list');
+            try {
+                const categories = await (await fetch(`${API_BASE_URL}/api/categories`)).json();
+                catList.innerHTML = categories.map(c => 
+                    `<li><a href="#/category/${c.id}">${c.name}</a></li>`
+                ).join('');
+            } catch(e) { catList.innerHTML = "Lỗi tải nhóm SP"; }
+
+            await renderProducts(true); 
+        }
+
+        async function renderProducts(bestseller = false) {
+            let productListDiv = document.getElementById('products-list');
+            if (!productListDiv) {
+                root.innerHTML = `<div class="main-content" style="width:100%"><div id="products-list"></div></div>`;
+                productListDiv = document.getElementById('products-list');
+            }
+            
+            let url = `${API_BASE_URL}/api/products`;
+            const path = window.location.hash;
+
+            if (path.startsWith('#/category/')) {
+                const groupId = path.split('/')[2];
+                url += `?group=${groupId}`;
+            } else if (path.startsWith('#/search')) {
+                const searchTerm = new URLSearchParams(path.split('?')[1]).get('q');
+                url += `?search=${searchTerm}`;
+            } else if (bestseller) {
+                url += `?bestseller=true`;
+            }
+            
+            try {
+                const products = await (await fetch(url)).json();
+                if (products.length === 0) return productListDiv.innerHTML = "Không tìm thấy sản phẩm nào.";
+                
+                productListDiv.innerHTML = products.map(p => `
+                    <div class="product-card">
+                        <h3>${p.name}</h3>
+                        <p>${p.price.toLocaleString('vi-VN')} VND</p>
+                        <p>Đã bán: ${p.sales_count}</p>
+                        <button onclick="handleAddToCart(${p.id}, '${p.name}', ${p.price})">Thêm vào giỏ</button>
+                    </div>
+                `).join('');
+            } catch (e) { productListDiv.innerHTML = "Lỗi tải sản phẩm."; }
+        }
+
+        function handleAddToCart(productId, name, price) {
+            if (!state.token) {
+                alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
+                window.location.hash = '#/login';
+                return;
+            }
+            const existingItem = state.cart.find(item => item.id === productId);
+            if (existingItem) existingItem.quantity++;
+            else state.cart.push({ id: productId, name: name, price: price, quantity: 1 });
+            localStorage.setItem('cart', JSON.stringify(state.cart));
+            updateNavbar();
+            alert(`Đã thêm ${name} vào giỏ!`);
+        }
+
+        function renderCart() {
+            root.innerHTML = '<h2>Giỏ hàng của bạn</h2>';
+            if (state.cart.length === 0) {
+                root.innerHTML += '<p>Giỏ hàng trống. <a href="#/">Tiếp tục mua sắm</a></p>'; return;
+            }
+            let totalAmount = 0;
+            const cartHTML = state.cart.map(item => {
+                const itemTotal = item.price * item.quantity;
+                totalAmount += itemTotal;
+                return `<div class="cart-item">
+                    <p>${item.name}</p>
+                    <input type="number" value="${item.quantity}" min="1" onchange="handleUpdateQuantity(${item.id}, this.value)">
+                    <span>${itemTotal.toLocaleString('vi-VN')} VND</span>
+                    <button onclick="handleRemoveFromCart(${item.id})">Xóa</button>
+                </div>`;
+            }).join('');
+            root.innerHTML += cartHTML;
+            root.innerHTML += `<h3>Tổng tiền: ${totalAmount.toLocaleString('vi-VN')} VND</h3>`;
+            root.innerHTML += `<button onclick="window.location.hash = '#/checkout'">Đặt hàng</button>`;
+        }
+
+        function handleUpdateQuantity(productId, quantity) {
+            const item = state.cart.find(item => item.id === productId);
+            if (item) {
+                item.quantity = parseInt(quantity);
+                if (item.quantity <= 0) { handleRemoveFromCart(productId); return; }
+            }
+            localStorage.setItem('cart', JSON.stringify(state.cart));
+            renderCart();
+        }
+
+        function handleRemoveFromCart(productId) {
+            state.cart = state.cart.filter(item => item.id !== productId);
+            localStorage.setItem('cart', JSON.stringify(state.cart));
+            renderCart();
+        }
+
+        function renderCheckout() {
+            root.innerHTML = `
+                <div class="checkout-form">
+                    <h2>Thông tin giao hàng</h2>
+                    <input type="text" id="cust-name" placeholder="Họ và tên" value="${state.user.username}">
+                    <input type="text" id="cust-phone" placeholder="Số điện thoại">
+                    <textarea id="cust-address" placeholder="Địa chỉ"></textarea>
+                    <button id="place-order-btn">Xác nhận Đặt hàng</button>
+                </div>`;
+            document.getElementById('place-order-btn').addEventListener('click', handlePlaceOrder);
+        }
+
+        async function handlePlaceOrder() {
+            const name = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+            const address = document.getElementById('cust-address').value;
+            if (!name || !phone || !address || state.cart.length === 0) {
+                alert("Vui lòng điền đầy đủ thông tin."); return;
+            }
+            try {
+                // (Bạn cần tạo flow 'POST /api/orders' trong Node-RED)
+                const data = await fetchWithToken(`orders`, {
+                    method: 'POST',
+                    body: JSON.stringify({ name, phone, address, cart: state.cart })
+                });
+                alert(data.message);
+                if (data.message) {
+                    state.cart = [];
+                    localStorage.removeItem('cart');
+                    window.location.hash = '#/';
+                }
+            } catch (e) { alert("Lỗi khi đặt hàng: " + e.message); }
+        }
+
+        // --- 5. LOGIC ADMIN ---
+        async function renderAdminOrders() {
+            root.innerHTML = `<div class="admin-page"><h2>Quản lý Đơn hàng (Admin)</h2><div id="order-list">Đang tải...</div></div>`;
+            try {
+                // (Bạn cần tạo flow 'GET /api/admin/orders' trong Node-RED)
+                const orders = await fetchWithToken(`admin/orders`);
+                document.getElementById('order-list').innerHTML = orders.map(order => `
+                    <div class="order-item">
+                        <p><b>Đơn #${order.id}</b> - ${order.customer_name} - <b>${order.status}</b></p>
+                        <select id="status-${order.id}">
+                            <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Chờ xác nhận</option>
+                            <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Đã xác nhận</option>
+                            <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Đã gửi</option>
+                            <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Đã huỷ</option>
+                        </select>
+                        <input type="text" id="cod-${order.id}" placeholder="Mã COD" value="${order.cod_code || ''}">
+                        <button onclick="handleUpdateOrder(${order.id})">Cập nhật</button>
+                    </div>
+                `).join('');
+            } catch (e) { root.innerHTML = `<p>Lỗi: ${e.message}</p>`; }
+        }
+
+        async function handleUpdateOrder(orderId) {
+            const status = document.getElementById(`status-${orderId}`).value;
+            const cod_code = document.getElementById(`cod-${orderId}`).value;
+            try {
+                // (Bạn cần tạo flow 'PUT /api/admin/order/:id' trong Node-RED)
+                const data = await fetchWithToken(`admin/order/${orderId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status: status, cod_code: cod_code })
+                });
+                alert(data.message);
+                renderAdminOrders(); // Tải lại danh sách
+            } catch (e) { alert("Lỗi cập nhật: " + e.message); }
+        }
+
+        function renderAdminStats() {
+            root.innerHTML = `
+                <div class="admin-page">
+                    <h2>Thống kê bán hàng (Grafana)</h2>
+                    <p>Để xem biểu đồ, hãy truy cập: 
+                        <a href="http://lyvancuong.com/grafana/" target="_blank">Dashboard Grafana</a>
+                    </p>
+                    <p>(Bạn cần vào Grafana, tạo Data Source InfluxDB (URL: http://influxdb_service:8086) và tạo Panel truy vấn "sales".)</p>
+                </div>
+            `;
+        }
+
+        // --- 6. ROUTER CHÍNH ---
+        async function handleRouting() {
+            const path = window.location.hash || '#/';
+            await updateNavbar();
+            
+            // Bảo vệ trang
+            if (!state.token && path !== '#/login' && path !== '#/register') {
+                window.location.hash = '#/login';
+                return;
+            }
+            if (path.startsWith('#/admin') && state.user?.role !== 'admin') {
+                alert('Bạn không có quyền truy cập!'); window.location.hash = '#/'; return;
+            }
+
+            // Định tuyến
+            if (path === '#/login') renderLogin();
+            else if (path === '#/register') renderRegister();
+            else if (path === '#/logout') handleLogout();
+            else if (path === '#/cart') renderCart();
+            else if (path === '#/checkout') renderCheckout();
+            else if (path.startsWith('#/category/')) renderProducts(false);
+            else if (path.startsWith('#/search')) renderProducts(false);
+            else if (path === '#/admin/orders') renderAdminOrders();
+            else if (path === '#/admin/stats') renderAdminStats();
+            else renderHome();
+        }
+
+        // Khởi động ứng dụng
+        window.addEventListener('hashchange', handleRouting);
+        handleRouting(); // Chạy lần đầu khi tải trang
+
+    </script>
+</body>
+</html>

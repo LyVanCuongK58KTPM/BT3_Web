@@ -1,0 +1,589 @@
+[
+    {
+        "id": "1858af47599804fb",
+        "type": "tab",
+        "label": "Đăng Nhập",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "tab_register_api",
+        "type": "tab",
+        "label": "API Đăng ký (Plain Text)",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "tab_product_api",
+        "type": "tab",
+        "label": "2. API Sản phẩm (Products)",
+        "disabled": false,
+        "info": "Flow này xử lý: Bán chạy, Theo nhóm, Tìm kiếm"
+    },
+    {
+        "id": "tab_order_api",
+        "type": "tab",
+        "label": "3. API Đặt hàng & Admin",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "75305b4c010f6905",
+        "type": "MySQL-Server",
+        "name": "",
+        "host": "mariadb_service",
+        "port": "3306",
+        "tls": false,
+        "database": "my_database"
+    },
+    {
+        "id": "a978f89f0a8f1ba1",
+        "type": "MSSQL-CN",
+        "tdsVersion": "7_4",
+        "name": "shop",
+        "server": "mariadb_service",
+        "port": "1433",
+        "encyption": false,
+        "trustServerCertificate": true,
+        "database": "my_database",
+        "useUTC": true,
+        "connectTimeout": "15000",
+        "requestTimeout": "15000",
+        "cancelTimeout": "5000",
+        "pool": "5",
+        "parseJSON": false,
+        "enableArithAbort": true,
+        "readOnlyIntent": false
+    },
+    {
+        "id": "7903f57d756b5acc",
+        "type": "MySQLdatabase",
+        "name": "a",
+        "host": "mariadb_service",
+        "port": "3306",
+        "db": "my_database",
+        "tz": "",
+        "charset": "UTF8"
+    },
+    {
+        "id": "2d10db7f15c306f5",
+        "type": "influxdb",
+        "hostname": "influxdb_service",
+        "port": 8086,
+        "protocol": "http",
+        "database": "ecom_stats",
+        "name": "",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "timeout": 10,
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "5dd9678165fd2c98",
+        "type": "comment",
+        "z": "1858af47599804fb",
+        "name": "WARNING: please check you have started this container with a volume that is mounted to /data\\n otherwise any flow changes are lost when you redeploy or upgrade the container\\n (e.g. upgrade to a more recent node-red docker image).\\n  If you are using named volumes you can ignore this warning.\\n Double click or see info side panel to learn how to start Node-RED in Docker to save your work",
+        "info": "\nTo start docker with a bind mount volume (-v option), for example:\n\n```\ndocker run -it -p 1880:1880 -v /home/user/node_red_data:/data --name mynodered nodered/node-red\n```\n\nwhere `/home/user/node_red_data` is a directory on your host machine where you want to store your flows.\n\nIf you do not do this then you can experiment and redploy flows, but if you restart or upgrade the container the flows will be disconnected and lost. \n\nThey will still exist in a hidden data volume, which can be recovered using standard docker techniques, but that is much more complex than just starting with a named volume as described above.",
+        "x": 350,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "5372b796abbbdf41",
+        "type": "http in",
+        "z": "1858af47599804fb",
+        "name": "",
+        "url": "/api/login",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 200,
+        "y": 220,
+        "wires": [
+            [
+                "a287fa572ac4a90a"
+            ]
+        ]
+    },
+    {
+        "id": "a287fa572ac4a90a",
+        "type": "function",
+        "z": "1858af47599804fb",
+        "name": "function 1",
+        "func": "// Lấy email và password từ request của Frontend\nvar user = msg.payload;\n\n// 1. Kiểm tra input (để tránh lỗi đăng nhập rỗng)\nif (!user || typeof user !== 'object' || !user.email || !user.password) {\n    msg.statusCode = 400;\n    msg.payload = { \"message\": \"Yêu cầu không hợp lệ. Thiếu email hoặc password.\" };\n    // Gửi lỗi ra cổng 2 (nếu có) hoặc dừng flow\n    return [null, msg];\n}\n\n// 2. Lưu mật khẩu (để node bcrypt so sánh sau)\nmsg.plainPassword = user.password;\n\n// 3. Chuẩn bị SQL (Dùng placeholder CÓ TÊN)\n// (Đảm bảo bảng 'users' của bạn có cột 'password_hash')\nmsg.topic = \"SELECT * FROM users WHERE email = :email\";\n\n// 4. Chuẩn bị payload LÀ OBJECT (Đây là mấu chốt)\n// Lỗi của bạn là ở đây. msg.payload phải là một Object.\nmsg.payload = {\n    email: user.email\n};\n\n// Đảm bảo node function của bạn có 2 đầu ra (output)\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 300,
+        "wires": [
+            [
+                "d5c3dc7c7af5f537"
+            ],
+            [
+                "7d30802e5a3545f7"
+            ]
+        ]
+    },
+    {
+        "id": "b2e6b76037ac44da",
+        "type": "function",
+        "z": "1858af47599804fb",
+        "name": "function 2",
+        "func": "// Kiểm tra xem DB có trả về user không\n// (Vì SQL đã check cả email VÀ pass, nên nếu có\n// kết quả, tức là đăng nhập thành công)\n\nif (!msg.payload || msg.payload.length === 0) {\n    // --- LỖI: KHÔNG TÌM THẤY ---\n    msg.statusCode = 401; // Unauthorized\n    msg.payload = { \"message\": \"Sai email hoặc mật khẩu\" };\n\n    // Gửi msg ra cổng 2 (cổng lỗi)\n    return [null, msg];\n}\n\n// --- THÀNH CÔNG ---\nvar user = msg.payload[0];\n\n// Chuẩn bị payload (dữ liệu) để ký vào token\nmsg.payload = {\n    userId: user.id,\n    email: user.email,\n    role: user.role\n};\n\n// Lưu user data để gửi về cho frontend\nmsg.userData = {\n    username: user.username,\n    email: user.email,\n    role: user.role\n}\n\n// Gửi msg ra cổng 1 (cổng thành công)\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 240,
+        "wires": [
+            [
+                "6639921bca65aca9"
+            ],
+            [
+                "a01192a77e902dc0"
+            ]
+        ]
+    },
+    {
+        "id": "a01192a77e902dc0",
+        "type": "function",
+        "z": "1858af47599804fb",
+        "name": "function 3",
+        "func": "// Node 'jwt sign' đã ghi Token vào msg.token\nmsg.statusCode = 200;\n\nmsg.payload = {\n    message: \"Đăng nhập thành công\",\n    token: msg.token, // Lấy token từ trường msg.token\n    user: msg.userData // Lấy thông tin user đã lưu\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 240,
+        "wires": [
+            [
+                "7d30802e5a3545f7"
+            ]
+        ]
+    },
+    {
+        "id": "7d30802e5a3545f7",
+        "type": "http response",
+        "z": "1858af47599804fb",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 890,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "6639921bca65aca9",
+        "type": "jwt sign",
+        "z": "1858af47599804fb",
+        "name": "",
+        "alg": "HS256",
+        "exp": 3600,
+        "jwkurl": "",
+        "jwkkid": "",
+        "secret": "123",
+        "key": "",
+        "signvar": "payload",
+        "storetoken": "token",
+        "x": 740,
+        "y": 320,
+        "wires": [
+            [
+                "a01192a77e902dc0"
+            ]
+        ]
+    },
+    {
+        "id": "d5c3dc7c7af5f537",
+        "type": "mysql",
+        "z": "1858af47599804fb",
+        "mydb": "7903f57d756b5acc",
+        "name": "",
+        "x": 550,
+        "y": 420,
+        "wires": [
+            [
+                "b2e6b76037ac44da"
+            ]
+        ]
+    },
+    {
+        "id": "http_in_register",
+        "type": "http in",
+        "z": "tab_register_api",
+        "name": "POST /api/register",
+        "url": "/api/register",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 140,
+        "wires": [
+            [
+                "func_prep_register_sql"
+            ]
+        ]
+    },
+    {
+        "id": "func_prep_register_sql",
+        "type": "function",
+        "z": "tab_register_api",
+        "name": "Chuẩn bị SQL (Register)",
+        "func": "var user = msg.payload;\n\n// 1. Kiểm tra input (để tránh lỗi đăng nhập rỗng)\nif (!user.email || !user.password || !user.username) {\n    msg.statusCode = 400; \n    msg.payload = { \"message\": \"Vui lòng nhập đủ username, email và password.\" };\n    return [null, msg]; // Gửi lỗi ra cổng 2\n}\n\n// 2. Chuẩn bị SQL (Dùng placeholder CÓ TÊN)\nmsg.topic = \"INSERT INTO users (username, email, password, role) VALUES (:user, :email, :pass, 'customer')\";\n    \n// 3. Chuẩn bị payload LÀ OBJECT (Fix lỗi 504)\nmsg.payload = { \n    user: user.username,\n    email: user.email, \n    pass: user.password \n};\n    \nreturn [msg, null]; // Gửi ra cổng 1",
+        "outputs": 2,
+        "noerr": 0,
+        "x": 410,
+        "y": 140,
+        "wires": [
+            [
+                "c7b486972d2ed3e5"
+            ],
+            [
+                "http_response_register"
+            ]
+        ]
+    },
+    {
+        "id": "func_register_success",
+        "type": "function",
+        "z": "tab_register_api",
+        "name": "Đăng ký thành công",
+        "func": "msg.statusCode = 201; // Created\nmsg.payload = { \"message\": \"Tạo tài khoản thành công!\" };\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 860,
+        "y": 140,
+        "wires": [
+            [
+                "http_response_register"
+            ]
+        ]
+    },
+    {
+        "id": "http_response_register",
+        "type": "http response",
+        "z": "tab_register_api",
+        "name": "Response (Register)",
+        "statusCode": "",
+        "headers": {},
+        "x": 870,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "c7b486972d2ed3e5",
+        "type": "mysql",
+        "z": "tab_register_api",
+        "mydb": "7903f57d756b5acc",
+        "name": "",
+        "x": 630,
+        "y": 120,
+        "wires": [
+            [
+                "func_register_success"
+            ]
+        ]
+    },
+    {
+        "id": "http_in_products",
+        "type": "http in",
+        "z": "tab_product_api",
+        "name": "GET /api/products",
+        "url": "/api/products",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "func_prep_products_sql"
+            ]
+        ]
+    },
+    {
+        "id": "func_prep_products_sql",
+        "type": "function",
+        "z": "tab_product_api",
+        "name": "Chuẩn bị SQL (Products)",
+        "func": "// Xử lý các yêu cầu: Bán chạy, Theo nhóm, Tìm kiếm\nvar query = msg.req.query;\nvar params = {}; // Sửa thành Object (để sửa lỗi 504)\nvar sql = \"SELECT * FROM products WHERE 1=1\"; \n\n// Yêu cầu: Lọc theo nhóm\nif (query.group) {\n    sql += \" AND category_id = :group\";\n    params.group = query.group;\n}\n\n// Yêu cầu: Tìm kiếm\nif (query.search) {\n    sql += \" AND name LIKE :search\";\n    params.search = '%' + query.search + '%';\n}\n\n// Yêu cầu: Bán chạy\nif (query.bestseller) {\n    sql += \" ORDER BY sales_count DESC LIMIT 10\"; \n}\n\nmsg.topic = sql;\nmsg.payload = params; // Gửi Object (fix lỗi 504)\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 120,
+        "wires": [
+            [
+                "d85774c790af7479"
+            ]
+        ]
+    },
+    {
+        "id": "http_response_products",
+        "type": "http response",
+        "z": "tab_product_api",
+        "name": "Response (Products)",
+        "statusCode": "200",
+        "headers": {},
+        "x": 900,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "http_in_categories",
+        "type": "http in",
+        "z": "tab_product_api",
+        "name": "GET /api/categories",
+        "url": "/api/categories",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 240,
+        "wires": [
+            [
+                "func_prep_categories_sql"
+            ]
+        ]
+    },
+    {
+        "id": "func_prep_categories_sql",
+        "type": "function",
+        "z": "tab_product_api",
+        "name": "Chuẩn bị SQL (Categories)",
+        "func": "// Yêu cầu: Lấy nhóm sản phẩm\nmsg.topic = \"SELECT * FROM categories\";\nmsg.payload = {}; // Gửi Object rỗng (fix lỗi 504)\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 240,
+        "wires": [
+            [
+                "fa8911af9bc1e0da"
+            ]
+        ]
+    },
+    {
+        "id": "http_response_categories",
+        "type": "http response",
+        "z": "tab_product_api",
+        "name": "Response (Categories)",
+        "statusCode": "200",
+        "headers": {},
+        "x": 910,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "d85774c790af7479",
+        "type": "mysql",
+        "z": "tab_product_api",
+        "mydb": "7903f57d756b5acc",
+        "name": "",
+        "x": 610,
+        "y": 120,
+        "wires": [
+            [
+                "http_response_products"
+            ]
+        ]
+    },
+    {
+        "id": "fa8911af9bc1e0da",
+        "type": "mysql",
+        "z": "tab_product_api",
+        "mydb": "7903f57d756b5acc",
+        "name": "",
+        "x": 670,
+        "y": 260,
+        "wires": [
+            [
+                "http_response_categories"
+            ]
+        ]
+    },
+    {
+        "id": "http_in_place_order",
+        "type": "http in",
+        "z": "tab_order_api",
+        "name": "POST /api/orders (Đặt hàng)",
+        "url": "/api/orders",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 120,
+        "wires": [
+            [
+                "46658272fb23d62c"
+            ]
+        ]
+    },
+    {
+        "id": "func_prep_order",
+        "type": "function",
+        "z": "tab_order_api",
+        "name": "Chuẩn bị SQL Đơn hàng",
+        "func": "// msg.payload chứa thông tin user từ token (userId, role...)\nvar user = msg.payload;\nvar order = msg.req.body; // Lấy từ app.js (name, phone, address, cart)\n\n// Tính tổng tiền\nvar total = 0;\norder.cart.forEach(item => {\n    total += item.price * item.quantity;\n});\n\n// Lưu lại giỏ hàng để dùng ở bước sau\nmsg.cart = order.cart;\n\n// 1. SQL cho bảng 'orders' (Dùng placeholder :ten_bien)\nmsg.topic = \"INSERT INTO orders (customer_name, customer_phone, customer_address, total_amount, user_id, status) VALUES (:name, :phone, :address, :total, :userId, 'pending')\";\n\n// 2. Payload là Object (Sửa lỗi 504)\nmsg.payload = {\n    name: order.name,\n    phone: order.phone,\n    address: order.address,\n    total: total,\n    userId: user.userId\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 120,
+        "wires": [
+            [
+                "d65505edf35277d9"
+            ]
+        ]
+    },
+    {
+        "id": "func_prep_order_items",
+        "type": "function",
+        "z": "tab_order_api",
+        "name": "Insert Items & Gửi Influx",
+        "func": "// msg.payload chứa {insertId: X} từ lệnh SQL trước\nvar orderId = msg.payload.insertId;\nvar cart = msg.cart;\n\nvar queries = [];\nvar influxPoints = []; // Cho InfluxDB (Grafana)\n\ncart.forEach(item => {\n    // 1. Insert chi tiết đơn hàng\n    var insertItem = \"INSERT INTO order_items (order_id, product_id, quantity, price_per_item) VALUES \";\n    insertItem += `(${orderId}, ${item.id}, ${item.quantity}, ${item.price});`;\n    queries.push(insertItem);\n    \n    // 2. Update sales_count trên bảng products\n    var updateSales = `UPDATE products SET sales_count = sales_count + ${item.quantity} WHERE id = ${item.id};`;\n    queries.push(updateSales);\n    \n    // 3. (GRAFANA) Chuẩn bị dữ liệu cho InfluxDB\n    influxPoints.push({\n        measurement: \"sales\",\n        fields: { \n            quantity: parseInt(item.quantity), \n            total_price: parseFloat(item.price * item.quantity)\n        },\n        tags: { \n            product_id: item.id.toString()\n        },\n        timestamp: new Date()\n    });\n});\n\n// Gửi SQL (dạng text) đến MySQL\nmsg.topic = queries.join('; '); \nmsg.payload = {}; // MySQL sẽ chạy msg.topic\n\n// Gửi Influx (dạng mảng) đến InfluxDB\n// (Node Function này cần 2 cổng Output)\nreturn [msg, { payload: influxPoints }];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1130,
+        "y": 120,
+        "wires": [
+            [
+                "0f1557d85b7049a2"
+            ],
+            [
+                "influxdb_out"
+            ]
+        ]
+    },
+    {
+        "id": "func_order_success",
+        "type": "function",
+        "z": "tab_order_api",
+        "name": "Đơn hàng thành công",
+        "func": "msg.statusCode = 200;\nmsg.payload = { message: \"Đặt hàng thành công! Đã ghi nhận doanh số.\" };\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1560,
+        "y": 80,
+        "wires": [
+            [
+                "http_response_order"
+            ]
+        ]
+    },
+    {
+        "id": "http_response_order",
+        "type": "http response",
+        "z": "tab_order_api",
+        "name": "Response (Order)",
+        "statusCode": "",
+        "headers": {},
+        "x": 1800,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "influxdb_out",
+        "type": "influxdb out",
+        "z": "tab_order_api",
+        "influxdb": "2d10db7f15c306f5",
+        "name": "Ghi vào InfluxDB (Grafana)",
+        "measurement": "",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "",
+        "retentionPolicyV18Flux": "",
+        "org": "",
+        "bucket": "",
+        "x": 1390,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "46658272fb23d62c",
+        "type": "jwt verify",
+        "z": "tab_order_api",
+        "name": "",
+        "alg": [
+            "HS256"
+        ],
+        "jwkurl": "",
+        "secret": "123",
+        "key": "",
+        "signvar": "payload",
+        "storetoken": "payload",
+        "x": 430,
+        "y": 200,
+        "wires": [
+            [
+                "func_prep_order"
+            ]
+        ]
+    },
+    {
+        "id": "d65505edf35277d9",
+        "type": "mysql",
+        "z": "tab_order_api",
+        "mydb": "7903f57d756b5acc",
+        "name": "",
+        "x": 890,
+        "y": 120,
+        "wires": [
+            [
+                "func_prep_order_items"
+            ]
+        ]
+    },
+    {
+        "id": "0f1557d85b7049a2",
+        "type": "mysql",
+        "z": "tab_order_api",
+        "mydb": "7903f57d756b5acc",
+        "name": "",
+        "x": 1390,
+        "y": 100,
+        "wires": [
+            [
+                "func_order_success"
+            ]
+        ]
+    },
+    {
+        "id": "f647bc47bfaa5216",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-mysql2-ts": "1.0.23",
+            "node-red-contrib-mssql-plus": "0.13.1",
+            "node-red-node-mysql": "2.0.0",
+            "node-red-contrib-influxdb": "0.7.0",
+            "node-red-contrib-jwt": "0.1.0"
+        }
+    }
+]
